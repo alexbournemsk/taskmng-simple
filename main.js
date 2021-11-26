@@ -1,33 +1,53 @@
-import {nanoid} from './nanoid.js';
+import {createModel} from './models/task-model.js';
+import {createView} from './views/task-view.js';
 
-let tasks = [
-  {
-    id: nanoid(),
-    title: 'Вынести мусор',
-    isDone: false,
-  },
-  {
-    id: nanoid(),
-    title: 'Защитить интенсив на соточку',
-    isDone: true,
-  },
-];
-
-
-const taskTemplateElement = document.querySelector('#task-template').content;
 const mainElement = document.querySelector('.main');
 const newTaskElement = mainElement.querySelector('.new-task');
 const addTaskButtonElement = mainElement.querySelector('.add-task-button');
 const clearTaskButtonElement = mainElement.querySelector('.clear-task-button');
 const tasksListElement = mainElement.querySelector('.tasks');
 
-const addNewTask = (title) => tasks.push({
-  id: nanoid(),
-  title: title,
-  isDone: false,
-});
+const taskModel = createModel(); 
 
-const clearTasks = () => (tasks = []);
+const addTaskButtonHandler = () => {
+  const {value: newTaskTitle} = newTaskElement;
 
-addNewTask('Поесть');
-console.log(tasks)
+  if (newTaskTitle.trim() === '') {
+    return;
+  } 
+
+  taskModel.add(newTaskTitle);
+  render(taskModel.getItems());
+  newTaskElement.value = '';
+  newTaskElement.focus();
+};
+
+const clearTaskButtonHandler = () => {
+  taskModel.clear();
+  render(taskModel.getItems());
+};
+
+const render = (tasks) => {
+  const newFragment = document.createDocumentFragment();
+  tasksListElement.innerHTML = '';
+
+  tasks.forEach((task) => {
+    const newTaskView = createView();
+    const newElement = newTaskView.getElement(task);
+
+    newTaskView.bindListeners(({target}) => {
+      taskModel.complete(target.id);
+      newTaskView.removeElement();
+      render(taskModel.getItems());
+    });
+
+    newFragment.appendChild(newElement);
+  });
+
+  tasksListElement.appendChild(newFragment);
+};
+
+addTaskButtonElement.addEventListener('click', addTaskButtonHandler);
+clearTaskButtonElement.addEventListener('click', clearTaskButtonHandler);
+
+render(taskModel.getItems());
